@@ -59,6 +59,16 @@ describe(weather_data)
 # 
 
 
+##### Data Cleaning:
+
+### Cleaning "station_data":
+# Changing the date in "installation_date" column to mdy format using Lubridate's "mdy" function:
+station_data$installation_date <- mdy(station_data$installation_date, tz = "UTC")
+
+### Cleaning "weather_data":
+
+
+
 
 
 
