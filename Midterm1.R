@@ -189,6 +189,45 @@ print(top_end_stations)
 
 ##### Bike Utilization Analysis:
 
+# Extracting month and year from start_date in trip_data:
+trip_data2 <- trip_data %>%
+  mutate(month = month(start_date, label = TRUE, abbr = FALSE),
+         year = year(start_date))
+
+# Calculating the total duration that each bike was used per month
+monthly_usage <- trip_data2 %>%
+  group_by(year, month) %>%
+  summarise(total_duration_seconds = sum(duration, na.rm = TRUE), .groups = 'drop')
+
+# Calculating the total number of seconds in each month
+# I will create a vector for the days in each month in 2014 using the "lubridate" package again:
+month_days <- data.frame(
+  month = month.name,
+  days_in_month = sapply(1:12, function(m) days_in_month(ymd(paste("2014", m, "01", sep = "-"))))
+)
+
+# Adding the year and the total available time in seconds
+month_days <- month_days %>%
+  mutate(total_time_available = days_in_month * 24 * 60 * 60)
+
+# Merging the "monthly_usage" with "month_days" to get the total time available
+# For this, I must join the data for monthly usage data with the total available time to get the utlization
+average_utilization <- monthly_usage %>%
+  left_join(month_days, by = c("month" = "month")) %>%
+  mutate(utilization = total_duration_seconds / total_time_available) %>%
+  arrange(year, match(month, month.name))
+
+# Here, we can see the average utilization
+print(average_utilization)
+
+# Making a bar plot of the average utilization
+ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = utilization)) +
+  geom_bar(stat = "identity", fill = "lightblue", col = "black") +
+  labs(title = "Average Monthly Bike Utilization",
+       x = "Month",
+       y = "Average Utilization") +
+  theme_minimal()
+
 
 
 
