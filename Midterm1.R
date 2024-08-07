@@ -95,9 +95,21 @@ trip_data$duration[trip_data$duration < 180 | trip_data$duration > 720454] <- NA
 # Putting "date" into POSIX format for potential downstream analysis:
 weather_data$date <- mdy(weather_data$date, tz = "UTC")
 
-# FIX WEATHER CLEANING
-# testing 123
+# Convert missing values present in "events" (as seen from "describe" function) to NA:
+weather_data$events[weather_data$events == ""] <- NA
 
+# Accounting for "T"s in precipitation (as seen from "describe" function)
+# "T" means "trace"; representing values less than 0.01; we will assign 0.005 to these to account for trace values less than 0.01.
+weather_data$precipitation_inches[weather_data$precipitation_inches == "T"] <- 0.005
+
+
+# All values in this precipitation column must be numeric for downstream analysis:
+weather_data$precipitation_inches <- as.numeric(weather_data$precipitation_inches)
+
+# "city", "events", and "cloud_cover" must all be factors for downstream analysis:
+weather_data$city <- as.factor(weather_data$city)
+weather_data$events <- as.factor(weather_data$events)
+weather_data$cloud_cover <- as.factor(weather_data$cloud_cover)
 
 ##### Rush Hours Determination:
 
@@ -229,6 +241,7 @@ ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = util
   theme_minimal()
 
 ##### Weather-Rental Correlation Analysis:
+
 
 
 
