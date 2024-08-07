@@ -189,10 +189,24 @@ print(top_end_stations)
 
 ##### Bike Utilization Analysis:
 
-# Extracting month and year from start_date
+# Extracting month and year from start_date in trip_data:
 trip_data2 <- trip_data %>%
   mutate(month = month(start_date, label = TRUE, abbr = FALSE),
          year = year(start_date))
+
+# Calculating the total duration that each bike was used per month
+monthly_usage <- trip_data2 %>%
+  group_by(year, month) %>%
+  summarise(total_duration_seconds = sum(duration, na.rm = TRUE), .groups = 'drop')
+
+# Calculating the total number of seconds in each month
+# I will create a vector for the days in each month in 2014 using the "lubridate" package again:
+month_days <- data.frame(
+  month = month.name,
+  days_in_month = sapply(1:12, function(m) days_in_month(ymd(paste("2014", m, "01", sep = "-"))))
+)
+
+
 
 
 
