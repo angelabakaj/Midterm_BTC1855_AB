@@ -14,6 +14,7 @@ library(funModeling)
 library(tidyverse) 
 library(Hmisc)
 library(lubridate)
+library(dplyr)
 
 ##### Performing EDA:
 
@@ -65,7 +66,36 @@ describe(weather_data)
 # Changing the date in "installation_date" column to mdy format using Lubridate's "mdy" function:
 station_data$installation_date <- mdy(station_data$installation_date, tz = "UTC")
 
+### Cleaning "trip_data":
+
+# Remove "nil" values in the "zip_code" column:
+trip_data$zip_code[trip_data$zip_code == "nil"] <- NA
+
+# Check for any non-numeric values in the "zip_code" column:
+trip_data$zip_code[grepl("[^0-9]|^.{1,4}$|^.{6,}$", trip_data$zip_code)] <- NA
+
+# Limit the "zip_code" column to only the valid zip-codes in the US:
+# According to Google, the highest is 99950 in Ketchikan, AK and the lowest is 00501 in Holtsville, NY. 
+numeric_zipcodes <- as.integer(trip_data$zip_code)
+trip_data$zip_code[!(numeric_zipcodes >= 501 & numeric_zipcodes <= 99950)] <- NA
+
+# Remove the outliers of the "duration" column:
+# Anything less than 180s is likely a cancelled trip:
+# There is also an extreme outlier of 194 days that must be removed:
+trip_data$duration[trip_data$duration < 180 | trip_data$duration > 720454] <- NA
+### MUST FIX THE UPPER LIMIT (find reason to justify, possibly 1 day, or maybe longest trip there and back)
+
+# Putting "start" and "end" dates into POSIX format for potential downstream analysis:
+trip_data$start_date <- mdy(trip_data$start_date, tz = "UTC")
+trip_data$end_date <- mdy(trip_data$end_date, tz = "UTC")
+
 ### Cleaning "weather_data":
+
+# Putting "date" into POSIX format for potential downstream analysis:
+weather_data$date <- mdy(weather_data$date, tz = "UTC")
+
+# CONTINUE WEATHER CLEANING
+
 
 
 
