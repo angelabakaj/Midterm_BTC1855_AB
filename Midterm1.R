@@ -88,8 +88,7 @@ trip_data$duration[trip_data$duration < 180 | trip_data$duration > 720454] <- NA
 ### MUST FIX THE UPPER LIMIT (find reason to justify, possibly 1 day, or maybe longest trip there and back)
 
 # Putting "start" and "end" dates into POSIX format for potential downstream analysis:
-trip_data$start_date <- mdy(trip_data$start_date, tz = "UTC")
-trip_data$end_date <- mdy(trip_data$end_date, tz = "UTC")
+#(replace with below)
 
 ### Cleaning "weather_data":
 
@@ -122,6 +121,8 @@ ggplot(trip_data_weekdays, aes(x = start_hour)) +
        x = "Hour of the Day",
        y = "Number of Trips") +
   theme_minimal()
+
+
 
 
 
