@@ -96,7 +96,7 @@ trip_data$duration[trip_data$duration < 180 | trip_data$duration > 720454] <- NA
 weather_data$date <- mdy(weather_data$date, tz = "UTC")
 
 # FIX WEATHER CLEANING
-
+# testing 123
 
 
 ##### Rush Hours Determination:
