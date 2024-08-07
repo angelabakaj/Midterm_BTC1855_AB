@@ -14,7 +14,9 @@ library(funModeling)
 library(tidyverse) 
 library(Hmisc)
 library(lubridate)
+library(ggplot2)
 library(dplyr)
+
 
 ##### Performing EDA:
 
@@ -97,6 +99,29 @@ weather_data$date <- mdy(weather_data$date, tz = "UTC")
 # CONTINUE WEATHER CLEANING
 
 
+
+##### Rush Hours Determination:
+
+### Converting both to POSIX format (MIGHT MOVE TO CLEANING)
+trip_data$start_date <- ymd_hms(trip_data$start_date)
+trip_data$end_date <- ymd_hms(trip_data$end_date)
+
+# Extract the hour and day of the week from the start_date
+trip_data <- trip_data %>%
+  mutate(start_hour = hour(start_date),
+         start_wday = wday(start_date, label = TRUE))
+
+# Filter for weekdays (Monday to Friday)
+trip_data_weekdays <- trip_data %>%
+  filter(start_wday %in% c("Mon", "Tue", "Wed", "Thu", "Fri"))
+
+# Create a histogram of the start hours on weekdays
+ggplot(trip_data_weekdays, aes(x = start_hour)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  labs(title = "Distribution of Bike Rentals by Hour on Weekdays",
+       x = "Hour of the Day",
+       y = "Number of Trips") +
+  theme_minimal()
 
 
 
