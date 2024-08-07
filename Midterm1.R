@@ -141,7 +141,6 @@ top_start_stations <- trip_data_rush_hours %>%
 # Here, we see the top 10 most frequent starting stations.
 print(top_start_stations)
 
-
 # Determine 10 most frequent ending stations
 top_end_stations <- trip_data_rush_hours %>%
   group_by(end_station_name) %>%
@@ -188,7 +187,7 @@ top_end_stations2 <- trip_data_weekends %>%
 # Here, we see the top 10 most frequent ending stations.
 print(top_end_stations)
 
-
+##### Bike Utilization Analysis:
 
 
 
