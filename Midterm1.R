@@ -206,7 +206,19 @@ month_days <- data.frame(
   days_in_month = sapply(1:12, function(m) days_in_month(ymd(paste("2014", m, "01", sep = "-"))))
 )
 
+# Adding the year and the total available time in seconds
+month_days <- month_days %>%
+  mutate(total_time_available = days_in_month * 24 * 60 * 60)
 
+# Merging the "monthly_usage" with "month_days" to get the total time available
+# For this, I must join the data for monthly usage data with the total available time to get the utlization
+average_utilization <- monthly_usage %>%
+  left_join(month_days, by = c("month" = "month")) %>%
+  mutate(utilization = total_duration_seconds / total_time_available) %>%
+  arrange(year, match(month, month.name))
+
+# Here, we can see the average utilization
+print(average_utilization)
 
 
 
