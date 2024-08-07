@@ -220,6 +220,16 @@ average_utilization <- monthly_usage %>%
 # Here, we can see the average utilization
 print(average_utilization)
 
+# Making a bar plot of the average utilization
+ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = utilization)) +
+  geom_bar(stat = "identity", fill = "lightblue", col = "black") +
+  labs(title = "Average Monthly Bike Utilization",
+       x = "Month",
+       y = "Average Utilization") +
+  theme_minimal()
+
+
+
 
 
 
