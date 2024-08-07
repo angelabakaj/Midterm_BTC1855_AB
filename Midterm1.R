@@ -116,43 +116,44 @@ trip_data_weekdays <- trip_data %>%
 
 # Create a histogram of the start hours on weekdays
 ggplot(trip_data_weekdays, aes(x = start_hour)) +
-  geom_histogram(binwidth = 1, fill = lightblue) +
+  geom_histogram(binwidth = 1, fill = "lightblue", col = "black") +
   labs(title = "Distribution of Bike Rentals by Hour on Weekdays",
        x = "Hour of the Day",
        y = "Number of Trips") +
   theme_minimal()
-
+# From this histogram we see that the rush hours occur between the 7th-9th hours of the day (7-9am) and also between the 16th-18th hours (4-6pm)
 
 ### Determine the top 10 most frequent starting and ending stations during these rush hours:
 
-# Define rush hours (modify based on histogram)
-rush_hours <- c()
+# Define rush hours
+rush_hours <- c(7, 8, 9, 16, 17, 18)
 
-# Filter the data for rush hours
+# Filter for rush hours
 trip_data_rush_hours <- trip_data_weekdays %>%
   filter(start_hour %in% rush_hours)
 
-# Most frequent starting stations
+# Determine 10 most frequent starting stations
 top_start_stations <- trip_data_rush_hours %>%
   group_by(start_station_name) %>%
   summarise(count = n()) %>%
   arrange(desc(count)) %>%
   top_n(10, count)
+# Here, we see the top 10 most frequent starting stations.
+print(top_start_stations)
 
-# Most frequent ending stations
+
+# Determine 10 most frequent ending stations
 top_end_stations <- trip_data_rush_hours %>%
   group_by(end_station_name) %>%
   summarise(count = n()) %>%
   arrange(desc(count)) %>%
   top_n(10, count)
-
-# Print the results
-print(top_start_stations)
+# Here, we see the top 10 most frequent ending stations.
 print(top_end_stations)
 
 
 ### Determine the top 10 most frequent starting and ending station on weekends:
-# Repeat above process to create a histogram:
+# Repeat above process to create another histogram:
 trip_data <- trip_data %>%
   mutate(start_hour = hour(start_date),
          start_wday = wday(start_date, label = TRUE))
@@ -163,7 +164,7 @@ trip_data_weekends <- trip_data %>%
 
 # Create a histogram of the start hours on weekends
 ggplot(trip_data_weekends, aes(x = start_hour)) +
-  geom_histogram(binwidth = 1, fill = "white", color = "black") +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
   labs(title = "Distribution of Bike Rentals by Hour on Weekends",
        x = "Hour of the Day",
        y = "Number of Trips") +
