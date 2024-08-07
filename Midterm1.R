@@ -14,7 +14,9 @@ library(funModeling)
 library(tidyverse) 
 library(Hmisc)
 library(lubridate)
+library(ggplot2)
 library(dplyr)
+
 
 ##### Performing EDA:
 
@@ -86,8 +88,7 @@ trip_data$duration[trip_data$duration < 180 | trip_data$duration > 720454] <- NA
 ### MUST FIX THE UPPER LIMIT (find reason to justify, possibly 1 day, or maybe longest trip there and back)
 
 # Putting "start" and "end" dates into POSIX format for potential downstream analysis:
-trip_data$start_date <- mdy(trip_data$start_date, tz = "UTC")
-trip_data$end_date <- mdy(trip_data$end_date, tz = "UTC")
+#(replace with below)
 
 ### Cleaning "weather_data":
 
@@ -108,6 +109,140 @@ weather_data$precipitation_inches <- as.numeric(weather_data$precipitation_inche
 weather_data$city <- as.factor(weather_data$city)
 weather_data$events <- as.factor(weather_data$events)
 weather_data$cloud_cover <- as.factor(weather_data$cloud_cover)
+
+##### Rush Hours Determination:
+
+### Converting both to POSIX format (MIGHT MOVE TO CLEANING ABOVE)
+trip_data$start_date <- mdy_hm(trip_data$start_date)
+trip_data$end_date <- mdy_hm(trip_data$end_date)
+
+# Extract the hour and day of the week from the start_date
+trip_data <- trip_data %>%
+  mutate(start_hour = hour(start_date),
+         start_wday = wday(start_date, label = TRUE))
+
+# Filter for weekdays (Monday to Friday)
+trip_data_weekdays <- trip_data %>%
+  filter(start_wday %in% c("Mon", "Tue", "Wed", "Thu", "Fri"))
+
+# Create a histogram of the start hours on weekdays
+ggplot(trip_data_weekdays, aes(x = start_hour)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", col = "black") +
+  labs(title = "Distribution of Bike Rentals by Hour on Weekdays",
+       x = "Hour of the Day",
+       y = "Number of Trips") +
+  theme_minimal()
+# From this histogram we see that the rush hours occur between the 7th-9th hours of the day (7-9am) and also between the 16th-18th hours (4-6pm)
+
+### Determine the top 10 most frequent starting and ending stations during these rush hours:
+
+# Define rush hours
+rush_hours <- c(7, 8, 9, 16, 17, 18)
+
+# Filter for rush hours
+trip_data_rush_hours <- trip_data_weekdays %>%
+  filter(start_hour %in% rush_hours)
+
+# Determine 10 most frequent starting stations
+top_start_stations <- trip_data_rush_hours %>%
+  group_by(start_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent starting stations.
+print(top_start_stations)
+
+# Determine 10 most frequent ending stations
+top_end_stations <- trip_data_rush_hours %>%
+  group_by(end_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent ending stations.
+print(top_end_stations)
+
+
+### Determine the top 10 most frequent starting and ending station on weekends:
+# Repeat above process to create another histogram:
+trip_data <- trip_data %>%
+  mutate(start_hour = hour(start_date),
+         start_wday = wday(start_date, label = TRUE))
+
+# Filter for weekends (Saturday and Sunday)
+trip_data_weekends <- trip_data %>%
+  filter(start_wday %in% c("Sat", "Sun"))
+
+# Create a histogram of the start hours on weekends
+ggplot(trip_data_weekends, aes(x = start_hour)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Bike Rentals by Hour on Weekends",
+       x = "Hour of the Day",
+       y = "Number of Trips") +
+  theme_minimal()
+
+# Determine 10 most frequent starting stations
+top_start_stations2 <- trip_data_weekends %>%
+  group_by(start_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent starting stations.
+print(top_start_stations)
+
+# Determine 10 most frequent ending stations
+top_end_stations2 <- trip_data_weekends %>%
+  group_by(end_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent ending stations.
+print(top_end_stations)
+
+##### Bike Utilization Analysis:
+
+# Extracting month and year from start_date in trip_data:
+trip_data2 <- trip_data %>%
+  mutate(month = month(start_date, label = TRUE, abbr = FALSE),
+         year = year(start_date))
+
+# Calculating the total duration that each bike was used per month
+monthly_usage <- trip_data2 %>%
+  group_by(year, month) %>%
+  summarise(total_duration_seconds = sum(duration, na.rm = TRUE), .groups = 'drop')
+
+# Calculating the total number of seconds in each month
+# I will create a vector for the days in each month in 2014 using the "lubridate" package again:
+month_days <- data.frame(
+  month = month.name,
+  days_in_month = sapply(1:12, function(m) days_in_month(ymd(paste("2014", m, "01", sep = "-"))))
+)
+
+# Adding the year and the total available time in seconds
+month_days <- month_days %>%
+  mutate(total_time_available = days_in_month * 24 * 60 * 60)
+
+# Merging the "monthly_usage" with "month_days" to get the total time available
+# For this, I must join the data for monthly usage data with the total available time to get the utlization
+average_utilization <- monthly_usage %>%
+  left_join(month_days, by = c("month" = "month")) %>%
+  mutate(utilization = total_duration_seconds / total_time_available) %>%
+  arrange(year, match(month, month.name))
+
+# Here, we can see the average utilization
+print(average_utilization)
+
+# Making a bar plot of the average utilization
+ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = utilization)) +
+  geom_bar(stat = "identity", fill = "lightblue", col = "black") +
+  labs(title = "Average Monthly Bike Utilization",
+       x = "Month",
+       y = "Average Utilization") +
+  theme_minimal()
+
+##### Weather-Rental Correlation Analysis:
+
+# must go back and fix weather data cleaning
+
 
 
 
