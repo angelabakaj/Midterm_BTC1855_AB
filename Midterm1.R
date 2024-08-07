@@ -230,7 +230,6 @@ ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = util
 
 ##### Weather-Rental Correlation Analysis:
 
-# must go back and fix weather data cleaning
 
 
 
