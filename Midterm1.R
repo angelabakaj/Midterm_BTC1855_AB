@@ -170,6 +170,23 @@ ggplot(trip_data_weekends, aes(x = start_hour)) +
        y = "Number of Trips") +
   theme_minimal()
 
+# Determine 10 most frequent starting stations
+top_start_stations2 <- trip_data_weekends %>%
+  group_by(start_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent starting stations.
+print(top_start_stations)
+
+# Determine 10 most frequent ending stations
+top_end_stations2 <- trip_data_weekends %>%
+  group_by(end_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent ending stations.
+print(top_end_stations)
 
 
 
