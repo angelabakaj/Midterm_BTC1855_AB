@@ -95,7 +95,7 @@ trip_data$duration[trip_data$duration < 180 | trip_data$duration > 720454] <- NA
 # Putting "date" into POSIX format for potential downstream analysis:
 weather_data$date <- mdy(weather_data$date, tz = "UTC")
 
-# CONTINUE WEATHER CLEANING
+# FIX WEATHER CLEANING
 
 
 
