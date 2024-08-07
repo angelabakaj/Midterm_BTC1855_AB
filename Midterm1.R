@@ -102,6 +102,7 @@ weather_data$events[weather_data$events == ""] <- NA
 # "T" means "trace"; representing values less than 0.01; we will assign 0.005 to these to account for trace values less than 0.01.
 weather_data$precipitation_inches[weather_data$precipitation_inches == "T"] <- 0.005
 
+
 # All values in this precipitation column must be numeric for downstream analysis:
 weather_data$precipitation_inches <- as.numeric(weather_data$precipitation_inches)
 
@@ -241,7 +242,6 @@ ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = util
 
 ##### Weather-Rental Correlation Analysis:
 
-# must go back and fix weather data cleaning
 
 
 
