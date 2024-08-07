@@ -88,8 +88,7 @@ trip_data$duration[trip_data$duration < 180 | trip_data$duration > 720454] <- NA
 ### MUST FIX THE UPPER LIMIT (find reason to justify, possibly 1 day, or maybe longest trip there and back)
 
 # Putting "start" and "end" dates into POSIX format for potential downstream analysis:
-trip_data$start_date <- mdy(trip_data$start_date, tz = "UTC")
-trip_data$end_date <- mdy(trip_data$end_date, tz = "UTC")
+#(replace with below)
 
 ### Cleaning "weather_data":
 
@@ -102,9 +101,9 @@ weather_data$date <- mdy(weather_data$date, tz = "UTC")
 
 ##### Rush Hours Determination:
 
-### Converting both to POSIX format (MIGHT MOVE TO CLEANING)
-trip_data$start_date <- ymd_hms(trip_data$start_date)
-trip_data$end_date <- ymd_hms(trip_data$end_date)
+### Converting both to POSIX format (MIGHT MOVE TO CLEANING ABOVE)
+trip_data$start_date <- mdy_hm(trip_data$start_date)
+trip_data$end_date <- mdy_hm(trip_data$end_date)
 
 # Extract the hour and day of the week from the start_date
 trip_data <- trip_data %>%
@@ -117,11 +116,80 @@ trip_data_weekdays <- trip_data %>%
 
 # Create a histogram of the start hours on weekdays
 ggplot(trip_data_weekdays, aes(x = start_hour)) +
-  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  geom_histogram(binwidth = 1, fill = "lightblue", col = "black") +
   labs(title = "Distribution of Bike Rentals by Hour on Weekdays",
        x = "Hour of the Day",
        y = "Number of Trips") +
   theme_minimal()
+# From this histogram we see that the rush hours occur between the 7th-9th hours of the day (7-9am) and also between the 16th-18th hours (4-6pm)
+
+### Determine the top 10 most frequent starting and ending stations during these rush hours:
+
+# Define rush hours
+rush_hours <- c(7, 8, 9, 16, 17, 18)
+
+# Filter for rush hours
+trip_data_rush_hours <- trip_data_weekdays %>%
+  filter(start_hour %in% rush_hours)
+
+# Determine 10 most frequent starting stations
+top_start_stations <- trip_data_rush_hours %>%
+  group_by(start_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent starting stations.
+print(top_start_stations)
+
+# Determine 10 most frequent ending stations
+top_end_stations <- trip_data_rush_hours %>%
+  group_by(end_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent ending stations.
+print(top_end_stations)
+
+
+### Determine the top 10 most frequent starting and ending station on weekends:
+# Repeat above process to create another histogram:
+trip_data <- trip_data %>%
+  mutate(start_hour = hour(start_date),
+         start_wday = wday(start_date, label = TRUE))
+
+# Filter for weekends (Saturday and Sunday)
+trip_data_weekends <- trip_data %>%
+  filter(start_wday %in% c("Sat", "Sun"))
+
+# Create a histogram of the start hours on weekends
+ggplot(trip_data_weekends, aes(x = start_hour)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Bike Rentals by Hour on Weekends",
+       x = "Hour of the Day",
+       y = "Number of Trips") +
+  theme_minimal()
+
+# Determine 10 most frequent starting stations
+top_start_stations2 <- trip_data_weekends %>%
+  group_by(start_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent starting stations.
+print(top_start_stations)
+
+# Determine 10 most frequent ending stations
+top_end_stations2 <- trip_data_weekends %>%
+  group_by(end_station_name) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10, count)
+# Here, we see the top 10 most frequent ending stations.
+print(top_end_stations)
+
+##### Bike Utilization Analysis:
+
+
 
 
 
