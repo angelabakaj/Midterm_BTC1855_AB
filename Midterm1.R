@@ -189,7 +189,10 @@ print(top_end_stations)
 
 ##### Bike Utilization Analysis:
 
-
+# Extracting month and year from start_date
+trip_data2 <- trip_data %>%
+  mutate(month = month(start_date, label = TRUE, abbr = FALSE),
+         year = year(start_date))
 
 
 
