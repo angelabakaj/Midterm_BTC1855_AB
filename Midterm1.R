@@ -10,13 +10,14 @@ station_data <- read.csv("/Users/angiebakaj/Downloads/babs/station.csv")
 install.packages("tidyverse")
 install.packages("funModeling")
 install.packages("Hmisc")
+install.packages("corrplot")
 library(funModeling) 
 library(tidyverse) 
 library(Hmisc)
 library(lubridate)
 library(ggplot2)
 library(dplyr)
-
+library(corrplot)
 
 ##### Performing EDA:
 
@@ -101,7 +102,6 @@ weather_data$events[weather_data$events == ""] <- NA
 # Accounting for "T"s in precipitation (as seen from "describe" function)
 # "T" means "trace"; representing values less than 0.01; we will assign 0.005 to these to account for trace values less than 0.01.
 weather_data$precipitation_inches[weather_data$precipitation_inches == "T"] <- 0.005
-
 
 # All values in this precipitation column must be numeric for downstream analysis:
 weather_data$precipitation_inches <- as.numeric(weather_data$precipitation_inches)
@@ -241,6 +241,34 @@ ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = util
   theme_minimal()
 
 ##### Weather-Rental Correlation Analysis:
+
+merged_data <- trip_data %>%
+  mutate(date = as.Date(start_date))
+
+# Joining the stations dataset to add a column specifying the city:
+merged_data <- left_join(merged_data, station_data, by = c("start_station_id" = "id"))
+
+# Create a dataset for summarizing daily data within each city, and merge it with "weather_data" based on city and date
+# Grouping by city and date
+grouped_data <- group_by(merged_data, city, date)
+
+# Summarizing the data
+summarized_data <- summarize(grouped_data,
+                             total_trip_time = sum(duration),
+                             number_of_trips = n())
+
+# Joining the weather data
+joined_data <- left_join(summarized_data, weather_data, by = c("city", "date"))
+
+# Selecting the required columns
+daily_city_summary <- select(joined_data, -zip_code, -date, -events) %>%
+  mutate(cloud_cover = as.numeric(cloud_cover))
+for(city in unique(daily_city_summary$city)) {
+  tmp <- daily_city_summary[daily_city_summary$city == city, -1]
+  correlation_matrix <- cor(tmp)
+  correlation_matrix <- correlation_matrix[1:2, -c(1,2)]
+  corrplot(correlation_matrix, title = city)
+  }
 
 
 
