@@ -6,7 +6,8 @@ weather_data <- read.csv("/Users/angiebakaj/Downloads/babs/weather.csv")
 trip_data <- read.csv("/Users/angiebakaj/Downloads/babs/trip.csv")
 station_data <- read.csv("/Users/angiebakaj/Downloads/babs/station.csv")
 
-##### Installing the necessary packages:
+##### Installing the necessary packages & keeping a neat collection of these packages here:
+# I will update this "library" for each downstream analysis
 install.packages("tidyverse")
 install.packages("funModeling")
 install.packages("Hmisc")
@@ -23,7 +24,7 @@ library(corrplot)
 
 ### EDA on "station_data"
 glimpse(station_data)
-# From the "glimpse" function, I see that the dates are given as characters, and if I want to perform math on them later, it would be beneficial to convert them to POSIX.
+# 
 print(status(station_data))
 #
 freq(station_data)
@@ -66,15 +67,19 @@ describe(weather_data)
 ##### Data Cleaning:
 
 ### Cleaning "station_data":
-# Changing the date in "installation_date" column to mdy format using Lubridate's "mdy" function:
+# Changing the date in "installation_date" column to POSIX mdy format using Lubridate's "mdy" function:
+# This will aid in downstream analysis involving dates in "station_data"
 station_data$installation_date <- mdy(station_data$installation_date, tz = "UTC")
 
 ### Cleaning "trip_data":
 
-# Remove "nil" values in the "zip_code" column:
+# From the "describe()" fucntion we notice: "nil" values and non-USA zip-codes:
+
+# Handle "nil" values in the "zip_code" column by setting them to NA:
 trip_data$zip_code[trip_data$zip_code == "nil"] <- NA
 
 # Check for any non-numeric values in the "zip_code" column:
+# Handles non-US zip codes that contain letters or are more or less than 5 digits:
 trip_data$zip_code[grepl("[^0-9]|^.{1,4}$|^.{6,}$", trip_data$zip_code)] <- NA
 
 # Limit the "zip_code" column to only the valid zip-codes in the US:
@@ -85,11 +90,18 @@ trip_data$zip_code[!(numeric_zipcodes >= 501 & numeric_zipcodes <= 99950)] <- NA
 # Remove the outliers of the "duration" column:
 # Anything less than 180s is likely a cancelled trip:
 # There is also an extreme outlier of 194 days that must be removed:
-trip_data$duration[trip_data$duration < 180 | trip_data$duration > 720454] <- NA
-### MUST FIX THE UPPER LIMIT (find reason to justify, possibly 1 day, or maybe longest trip there and back)
+trip_data$duration[trip_data$duration < 180 | trip_data$duration > 36000] <- NA
+# I have set the upper limit to 36,000 seconds (check report for justification & logic)
+# Checking if this is reasonable in terms of the data as a whole using the "quantile()" function:
+quantile(trip_data$duration, na.rm = TRUE, 0.99)
+# The 99th percentile for duration in seconds is approximately 22,000, so I know my limit of 36000 does not reduce my dataset extremely.
+
+# In case of future analysis, I will keep this excluded data in a separate CSV file:
+trip_data$duration[trip_data$duration < 180 | trip_data$duration > 36000] <- NA
 
 # Putting "start" and "end" dates into POSIX format for potential downstream analysis:
-#(replace with below)
+trip_data$start_date <- mdy_hm(trip_data$start_date)
+trip_data$end_date <- mdy_hm(trip_data$end_date)
 
 ### Cleaning "weather_data":
 
@@ -113,20 +125,16 @@ weather_data$cloud_cover <- as.factor(weather_data$cloud_cover)
 
 ##### Rush Hours Determination:
 
-### Converting both to POSIX format (MIGHT MOVE TO CLEANING ABOVE)
-trip_data$start_date <- mdy_hm(trip_data$start_date)
-trip_data$end_date <- mdy_hm(trip_data$end_date)
-
-# Extract the hour and day of the week from the start_date
+# Extracting the hour and day of the week from the start_date:
 trip_data <- trip_data %>%
   mutate(start_hour = hour(start_date),
          start_wday = wday(start_date, label = TRUE))
 
-# Filter for weekdays (Monday to Friday)
+# Filtering for weekdays (Monday to Friday):
 trip_data_weekdays <- trip_data %>%
   filter(start_wday %in% c("Mon", "Tue", "Wed", "Thu", "Fri"))
 
-# Create a histogram of the start hours on weekdays
+# Creating a histogram of the start hours on weekdays:
 ggplot(trip_data_weekdays, aes(x = start_hour)) +
   geom_histogram(binwidth = 1, fill = "lightblue", col = "black") +
   labs(title = "Distribution of Bike Rentals by Hour on Weekdays",
@@ -137,10 +145,10 @@ ggplot(trip_data_weekdays, aes(x = start_hour)) +
 
 ### Determine the top 10 most frequent starting and ending stations during these rush hours:
 
-# Define rush hours
+# Defining rush hours from the histogram above:
 rush_hours <- c(7, 8, 9, 16, 17, 18)
 
-# Filter for rush hours
+# Filtering for rush hours:
 trip_data_rush_hours <- trip_data_weekdays %>%
   filter(start_hour %in% rush_hours)
 
@@ -164,16 +172,16 @@ print(top_end_stations)
 
 
 ### Determine the top 10 most frequent starting and ending station on weekends:
-# Repeat above process to create another histogram:
+# Repeating above process to create another histogram:
 trip_data <- trip_data %>%
   mutate(start_hour = hour(start_date),
          start_wday = wday(start_date, label = TRUE))
 
-# Filter for weekends (Saturday and Sunday)
+# Filtering for weekends (Saturday and Sunday):
 trip_data_weekends <- trip_data %>%
   filter(start_wday %in% c("Sat", "Sun"))
 
-# Create a histogram of the start hours on weekends
+# Creating a histogram of the start hours on weekends:
 ggplot(trip_data_weekends, aes(x = start_hour)) +
   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
   labs(title = "Distribution of Bike Rentals by Hour on Weekends",
@@ -218,21 +226,21 @@ month_days <- data.frame(
   days_in_month = sapply(1:12, function(m) days_in_month(ymd(paste("2014", m, "01", sep = "-"))))
 )
 
-# Adding the year and the total available time in seconds
+# Adding the year and the total available time in seconds:
 month_days <- month_days %>%
   mutate(total_time_available = days_in_month * 24 * 60 * 60)
 
-# Merging the "monthly_usage" with "month_days" to get the total time available
-# For this, I must join the data for monthly usage data with the total available time to get the utlization
+# Merging the "monthly_usage" with "month_days" to get the total time available:
+# For this, I must join the data for monthly usage data with the total available time to get the utilization:
 average_utilization <- monthly_usage %>%
   left_join(month_days, by = c("month" = "month")) %>%
   mutate(utilization = total_duration_seconds / total_time_available) %>%
   arrange(year, match(month, month.name))
 
-# Here, we can see the average utilization
+# Here, we can see the average utilization in the form of a table:
 print(average_utilization)
 
-# Making a bar plot of the average utilization
+# Making a bar plot of the average utilization for better visualization:
 ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = utilization)) +
   geom_bar(stat = "identity", fill = "lightblue", col = "black") +
   labs(title = "Average Monthly Bike Utilization",
@@ -242,27 +250,30 @@ ggplot(average_utilization, aes(x = factor(month, levels = month.name), y = util
 
 ##### Weather-Rental Correlation Analysis:
 
+# Creating a dataset for the joined/merged "trip_data":
 merged_data <- trip_data %>%
   mutate(date = as.Date(start_date))
 
-# Joining the stations dataset to add a column specifying the city:
+# Joining the "station_data" dataset to add a column specifying the city:
 merged_data <- left_join(merged_data, station_data, by = c("start_station_id" = "id"))
 
-# Create a dataset for summarizing daily data within each city, and merge it with "weather_data" based on city and date
-# Grouping by city and date
+# Creating a dataset for summarizing daily data within each city, and merge it with "weather_data" based on city and date:
+# Grouping by city and date:
 grouped_data <- group_by(merged_data, city, date)
 
-# Summarizing the data
+# Summarizing the data:
 summarized_data <- summarize(grouped_data,
                              total_trip_time = sum(duration),
                              number_of_trips = n())
 
-# Joining the weather data
+# Joining the "weather_data":
 joined_data <- left_join(summarized_data, weather_data, by = c("city", "date"))
 
-# Selecting the required columns
+# Selecting the required columns:
 daily_city_summary <- select(joined_data, -zip_code, -date, -events) %>%
   mutate(cloud_cover = as.numeric(cloud_cover))
+
+# Creating a for-loop to re-apply the correlation "corrplot()" function to each city:
 for(city in unique(daily_city_summary$city)) {
   tmp <- daily_city_summary[daily_city_summary$city == city, -1]
   correlation_matrix <- cor(tmp)
