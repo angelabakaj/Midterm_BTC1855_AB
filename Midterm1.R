@@ -85,7 +85,7 @@ trip_data$zip_code[grepl("[^0-9]|^.{1,4}$|^.{6,}$", trip_data$zip_code)] <- NA
 # Limit the "zip_code" column to only the valid zip-codes in the US:
 # According to Google, the highest is 99950 in Ketchikan, AK and the lowest is 00501 in Holtsville, NY. 
 numeric_zipcodes <- as.integer(trip_data$zip_code)
-trip_data$zip_code[!(numeric_zipcodes >= 501 & numeric_zipcodes <= 99950)] <- NA
+trip_data$zip_code[!(numeric_zipcodes >= 00501 & numeric_zipcodes <= 99950)] <- NA
 
 # Remove the outliers of the "duration" column:
 # Anything less than 180s is likely a cancelled trip:
@@ -97,7 +97,8 @@ quantile(trip_data$duration, na.rm = TRUE, 0.99)
 # The 99th percentile for duration in seconds is approximately 22,000, so I know my limit of 36000 does not reduce my dataset extremely.
 
 # In case of future analysis, I will keep this excluded data in a separate CSV file:
-trip_data$duration[trip_data$duration < 180 | trip_data$duration > 36000] <- NA
+excluded_data <- trip_data$duration[trip_data$duration < 180 | trip_data$duration > 36000]
+write.csv(excluded_data, "excluded_data.csv")
 
 # Putting "start" and "end" dates into POSIX format for potential downstream analysis:
 trip_data$start_date <- mdy_hm(trip_data$start_date)
@@ -274,9 +275,12 @@ daily_city_summary <- select(joined_data, -zip_code, -date, -events) %>%
   mutate(cloud_cover = as.numeric(cloud_cover))
 
 # Creating a for-loop to re-apply the correlation "corrplot()" function to each city:
+# Fixing the margins first:
+par(mar = c(5, 4, 6, 2))
+# Plotting for each city:
 for(city in unique(daily_city_summary$city)) {
-  tmp <- daily_city_summary[daily_city_summary$city == city, -1]
-  correlation_matrix <- cor(tmp)
+  weather_trip_cor <- daily_city_summary[daily_city_summary$city == city, -1]
+  correlation_matrix <- cor(weather_trip_cor)
   correlation_matrix <- correlation_matrix[1:2, -c(1,2)]
   corrplot(correlation_matrix, title = city)
   }
