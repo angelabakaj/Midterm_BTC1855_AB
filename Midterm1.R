@@ -1,6 +1,9 @@
 ##### BTC-1855 MIDTERM PROJECT: ANGELA BAKAJ
 
 ##### Loading the Datasets into R & Assigning Data to Variables
+# SK (Points taken) When you use a project/repo, your environment is re-defined as your project folder. 
+# To ensure reproducibility make sure that the data is included in the folder, and
+# to ensure code portability, make sure that you define file paths within the environment. 
 
 weather_data <- read.csv("/Users/angiebakaj/Downloads/babs/weather.csv")
 trip_data <- read.csv("/Users/angiebakaj/Downloads/babs/trip.csv")
@@ -8,10 +11,14 @@ station_data <- read.csv("/Users/angiebakaj/Downloads/babs/station.csv")
 
 ##### Installing the necessary packages & keeping a neat collection of these packages here:
 # I will update this "library" for each downstream analysis
-install.packages("tidyverse")
-install.packages("funModeling")
-install.packages("Hmisc")
-install.packages("corrplot")
+# SK  It may at times be okay to include the code installing packages but no okay to enforce 
+# re-installing packages every time a code is sourced. Best practice is to include these 
+# lines and comment them. Then ask the user to un-comment when necessary.
+
+# install.packages("tidyverse")
+# install.packages("funModeling")
+# install.packages("Hmisc")
+# install.packages("corrplot")
 library(funModeling) 
 library(tidyverse) 
 library(Hmisc)
@@ -38,6 +45,8 @@ describe(station_data)
 ### EDA on "trip_data"
 glimpse(trip_data)
 # 
+# SK (Points taken) The output of the code below shows 70 unique start/end station IDs, and 
+# 74 unique start/end station names. This is a discrepancy worth looking into.
 print(status(trip_data))
 #
 freq(trip_data)
@@ -97,6 +106,7 @@ quantile(trip_data$duration, na.rm = TRUE, 0.99)
 # The 99th percentile for duration in seconds is approximately 22,000, so I know my limit of 36000 does not reduce my dataset extremely.
 
 # In case of future analysis, I will keep this excluded data in a separate CSV file:
+# SK (Points taken) You have not saved the data you excluded.
 trip_data$duration[trip_data$duration < 180 | trip_data$duration > 36000] <- NA
 
 # Putting "start" and "end" dates into POSIX format for potential downstream analysis:
@@ -126,6 +136,7 @@ weather_data$cloud_cover <- as.factor(weather_data$cloud_cover)
 ##### Rush Hours Determination:
 
 # Extracting the hour and day of the week from the start_date:
+# SK  It would be easier to filter the week days by number (1 to 5) if you had set wday(..., label=F)
 trip_data <- trip_data %>%
   mutate(start_hour = hour(start_date),
          start_wday = wday(start_date, label = TRUE))
@@ -221,6 +232,7 @@ monthly_usage <- trip_data2 %>%
 
 # Calculating the total number of seconds in each month
 # I will create a vector for the days in each month in 2014 using the "lubridate" package again:
+# SK Good idea to increase the accuracy of the denominator
 month_days <- data.frame(
   month = month.name,
   days_in_month = sapply(1:12, function(m) days_in_month(ymd(paste("2014", m, "01", sep = "-"))))
@@ -259,21 +271,39 @@ merged_data <- left_join(merged_data, station_data, by = c("start_station_id" = 
 
 # Creating a dataset for summarizing daily data within each city, and merge it with "weather_data" based on city and date:
 # Grouping by city and date:
+# SK You could have piped this to the previous command
 grouped_data <- group_by(merged_data, city, date)
 
 # Summarizing the data:
+# SK You could have piped this to the previous command
 summarized_data <- summarize(grouped_data,
                              total_trip_time = sum(duration),
                              number_of_trips = n())
 
 # Joining the "weather_data":
+# SK You could have piped this to the previous command
 joined_data <- left_join(summarized_data, weather_data, by = c("city", "date"))
 
 # Selecting the required columns:
+# SK You could have piped this to the previous command
 daily_city_summary <- select(joined_data, -zip_code, -date, -events) %>%
   mutate(cloud_cover = as.numeric(cloud_cover))
 
 # Creating a for-loop to re-apply the correlation "corrplot()" function to each city:
+# SK Where is the benefit in plotting correlations city by city? 
+# Is there a good reason to believe that residents of one city will
+# react differently to the weather than the others?
+# Even if you suspect that is the case, the aggregate level is a better
+# starting place to explore possible correlations. You may prefer to
+# dig deeper into city level later.
+# (Points taken) In your report you state "It was found that better weather conditions 
+# resulted in a positive correlation with the number of trips and the
+# duration of each trip. It was also found that there was a negative 
+# correlation between the number of trips and duration of these trips
+# with the precipitation and cloud cover.". You need to retain your 
+# correlation matrices to provide numbers (ie correlation coefficient) 
+# to support your claim.
+
 for(city in unique(daily_city_summary$city)) {
   tmp <- daily_city_summary[daily_city_summary$city == city, -1]
   correlation_matrix <- cor(tmp)
